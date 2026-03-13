@@ -15,13 +15,14 @@ music_queue = []
 current_song = None
 is_paused = False
 
-# YTDL
+# YTDL AYARLARI (COOKIES EKLİ)
 ytdl_format_options = {
     "format": "bestaudio/best",
     "noplaylist": True,
     "quiet": True,
     "no_warnings": True,
     "default_search": "ytsearch",
+    "cookiefile": "cookies.txt",  # 🔥 BU SATIR ÖNEMLİ
 }
 
 ffmpeg_options = {
@@ -78,7 +79,6 @@ async def play_next(ctx):
         current_song = None
 
 
-# 🎵 ŞARKI
 @bot.command(name="şarkı")
 async def play(ctx, *, search):
 
@@ -97,10 +97,8 @@ async def play(ctx, *, search):
         await ctx.send(f"📋 Kuyruğa eklendi: **{player.title}**")
 
 
-# ⏹ DUR
 @bot.command()
 async def kapat(ctx):
-
     global current_song, is_paused
 
     if ctx.voice_client:
@@ -111,10 +109,8 @@ async def kapat(ctx):
         await ctx.send("⏹️ Müzik durduruldu.")
 
 
-# ⏸ DURAKLAT
 @bot.command()
 async def durdur(ctx):
-
     global is_paused
 
     if ctx.voice_client and ctx.voice_client.is_playing():
@@ -123,10 +119,8 @@ async def durdur(ctx):
         await ctx.send("⏸️ Duraklatıldı.")
 
 
-# ▶ DEVAM
 @bot.command()
 async def devam(ctx):
-
     global is_paused
 
     if ctx.voice_client and is_paused:
@@ -135,22 +129,18 @@ async def devam(ctx):
         await ctx.send("▶️ Devam ediyor.")
 
 
-# ⏭ ATLA
 @bot.command()
 async def atla(ctx):
-
     if ctx.voice_client and ctx.voice_client.is_playing():
         ctx.voice_client.stop()
         await ctx.send("⏭️ Atlandı.")
 
 
-# 📊 PING
 @bot.command()
 async def ping(ctx):
     await ctx.send(f"Pong! {round(bot.latency * 1000)} ms")
 
 
-# ❌ HATA
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
@@ -159,5 +149,4 @@ async def on_command_error(ctx, error):
         await ctx.send(f"Hata: {error}")
 
 
-# START
 bot.run(os.getenv("TOKEN"))
