@@ -14,17 +14,17 @@ music_queue = []
 current_song = None
 is_paused = False
 
-# yt-dlp ayarları
+
 ytdl_format_options = {
     "format": "bestaudio[ext=webm]/bestaudio/best",
     "noplaylist": True,
     "quiet": True,
     "no_warnings": True,
     "default_search": "ytsearch",
-    "cookiefile": "cookies.txt",
     "extractor_args": {
         "youtube": {
-            "player_client": ["android"]
+            "player_client": ["android"],
+            "skip": ["hls", "dash"]
         }
     }
 }
@@ -80,6 +80,7 @@ async def play_next(ctx):
         )
 
         await ctx.send(f"🎵 Şimdi çalıyor: **{current_song.title}**")
+
     else:
         current_song = None
 
@@ -112,6 +113,7 @@ async def kapat(ctx):
         music_queue.clear()
         current_song = None
         is_paused = False
+
         await ctx.send("⏹️ Müzik durduruldu.")
 
 
@@ -123,6 +125,7 @@ async def durdur(ctx):
     if ctx.voice_client and ctx.voice_client.is_playing():
         ctx.voice_client.pause()
         is_paused = True
+
         await ctx.send("⏸️ Duraklatıldı.")
 
 
@@ -134,6 +137,7 @@ async def devam(ctx):
     if ctx.voice_client and is_paused:
         ctx.voice_client.resume()
         is_paused = False
+
         await ctx.send("▶️ Devam ediyor.")
 
 
@@ -142,6 +146,7 @@ async def atla(ctx):
 
     if ctx.voice_client and ctx.voice_client.is_playing():
         ctx.voice_client.stop()
+
         await ctx.send("⏭️ Atlandı.")
 
 
@@ -155,6 +160,7 @@ async def on_command_error(ctx, error):
 
     if isinstance(error, commands.CommandNotFound):
         await ctx.send("Komut yok.")
+
     else:
         await ctx.send(f"Hata: {error}")
 
