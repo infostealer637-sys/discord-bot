@@ -4,7 +4,6 @@ import yt_dlp
 import asyncio
 import os
 
-# Intents
 intents = discord.Intents.default()
 intents.message_content = True
 intents.voice_states = True
@@ -15,14 +14,19 @@ music_queue = []
 current_song = None
 is_paused = False
 
-# YTDL AYARLARI (COOKIES EKLİ)
+# yt-dlp ayarları
 ytdl_format_options = {
-    "format": "bestaudio/best",
+    "format": "bestaudio[ext=webm]/bestaudio/best",
     "noplaylist": True,
     "quiet": True,
     "no_warnings": True,
     "default_search": "ytsearch",
-    "cookiefile": "cookies.txt",  # 🔥 BU SATIR ÖNEMLİ
+    "cookiefile": "cookies.txt",
+    "extractor_args": {
+        "youtube": {
+            "player_client": ["android"]
+        }
+    }
 }
 
 ffmpeg_options = {
@@ -34,13 +38,14 @@ ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
 
 
 class YTDLSource(discord.PCMVolumeTransformer):
+
     def __init__(self, source, *, data, volume=0.5):
         super().__init__(source, volume)
         self.title = data.get("title")
 
     @classmethod
     async def from_url(cls, url):
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         data = await loop.run_in_executor(
             None, lambda: ytdl.extract_info(url, download=False)
@@ -99,6 +104,7 @@ async def play(ctx, *, search):
 
 @bot.command()
 async def kapat(ctx):
+
     global current_song, is_paused
 
     if ctx.voice_client:
@@ -111,6 +117,7 @@ async def kapat(ctx):
 
 @bot.command()
 async def durdur(ctx):
+
     global is_paused
 
     if ctx.voice_client and ctx.voice_client.is_playing():
@@ -121,6 +128,7 @@ async def durdur(ctx):
 
 @bot.command()
 async def devam(ctx):
+
     global is_paused
 
     if ctx.voice_client and is_paused:
@@ -131,6 +139,7 @@ async def devam(ctx):
 
 @bot.command()
 async def atla(ctx):
+
     if ctx.voice_client and ctx.voice_client.is_playing():
         ctx.voice_client.stop()
         await ctx.send("⏭️ Atlandı.")
@@ -143,6 +152,7 @@ async def ping(ctx):
 
 @bot.event
 async def on_command_error(ctx, error):
+
     if isinstance(error, commands.CommandNotFound):
         await ctx.send("Komut yok.")
     else:
