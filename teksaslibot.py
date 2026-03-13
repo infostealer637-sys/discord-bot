@@ -4,13 +4,18 @@ import yt_dlp
 import asyncio
 import os
 
-intents = discord.Intents.all()
+# Intents
+intents = discord.Intents.default()
+intents.message_content = True
+intents.voice_states = True
+
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 music_queue = []
 current_song = None
 is_paused = False
 
+# YTDL
 ytdl_format_options = {
     "format": "bestaudio/best",
     "noplaylist": True,
@@ -28,15 +33,13 @@ ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
 
 
 class YTDLSource(discord.PCMVolumeTransformer):
-
     def __init__(self, source, *, data, volume=0.5):
         super().__init__(source, volume)
         self.title = data.get("title")
 
     @classmethod
-    async def from_url(cls, url, *, loop=None):
-
-        loop = loop or asyncio.get_event_loop()
+    async def from_url(cls, url):
+        loop = asyncio.get_event_loop()
 
         data = await loop.run_in_executor(
             None, lambda: ytdl.extract_info(url, download=False)
@@ -46,9 +49,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
             data = data["entries"][0]
 
         return cls(
-            discord.FFmpegPCMAudio(
-                data["url"], **ffmpeg_options
-            ),
+            discord.FFmpegPCMAudio(data["url"], **ffmpeg_options),
             data=data,
         )
 
@@ -77,8 +78,7 @@ async def play_next(ctx):
         current_song = None
 
 
-# ---------------- MUSIC ----------------
-
+# 🎵 ŞARKI
 @bot.command(name="şarkı")
 async def play(ctx, *, search):
 
@@ -88,7 +88,7 @@ async def play(ctx, *, search):
     if not ctx.voice_client:
         await ctx.author.voice.channel.connect()
 
-    player = await YTDLSource.from_url(search, loop=bot.loop)
+    player = await YTDLSource.from_url(search)
     music_queue.append(player)
 
     if not ctx.voice_client.is_playing():
@@ -97,27 +97,9 @@ async def play(ctx, *, search):
         await ctx.send(f"📋 Kuyruğa eklendi: **{player.title}**")
 
 
-@bot.command(name="sıra")
-async def show_queue(ctx):
-
-    if not music_queue and not current_song:
-        return await ctx.send("Kuyruk boş.")
-
-    msg = ""
-
-    if current_song:
-        msg += f"▶️ Şu an çalıyor: {current_song.title}\n\n"
-
-    if music_queue:
-        msg += "📋 Sıradakiler:\n"
-        for i, song in enumerate(music_queue):
-            msg += f"{i+1}. {song.title}\n"
-
-    await ctx.send(msg)
-
-
-@bot.command(name="kapat")
-async def stop(ctx):
+# ⏹ DUR
+@bot.command()
+async def kapat(ctx):
 
     global current_song, is_paused
 
@@ -129,8 +111,9 @@ async def stop(ctx):
         await ctx.send("⏹️ Müzik durduruldu.")
 
 
-@bot.command(name="durdur")
-async def pause(ctx):
+# ⏸ DURAKLAT
+@bot.command()
+async def durdur(ctx):
 
     global is_paused
 
@@ -140,8 +123,9 @@ async def pause(ctx):
         await ctx.send("⏸️ Duraklatıldı.")
 
 
-@bot.command(name="devam")
-async def resume(ctx):
+# ▶ DEVAM
+@bot.command()
+async def devam(ctx):
 
     global is_paused
 
@@ -151,106 +135,29 @@ async def resume(ctx):
         await ctx.send("▶️ Devam ediyor.")
 
 
-@bot.command(name="çık")
-async def leave(ctx):
-
-    if ctx.voice_client:
-        await ctx.voice_client.disconnect()
-        music_queue.clear()
-
-
-@bot.command(name="atla")
-async def skip(ctx):
+# ⏭ ATLA
+@bot.command()
+async def atla(ctx):
 
     if ctx.voice_client and ctx.voice_client.is_playing():
         ctx.voice_client.stop()
         await ctx.send("⏭️ Atlandı.")
 
 
-# ---------------- MODERATION ----------------
-
-@bot.command()
-@commands.has_permissions(kick_members=True)
-async def kick(ctx, member: discord.Member, *, reason=None):
-
-    await member.kick(reason=reason)
-    await ctx.send(f"{member} atıldı.")
-
-
-@bot.command()
-@commands.has_permissions(ban_members=True)
-async def ban(ctx, member: discord.Member, *, reason=None):
-
-    await member.ban(reason=reason)
-    await ctx.send(f"{member} yasaklandı.")
-
-
-@bot.command()
-@commands.has_permissions(manage_roles=True)
-async def mute(ctx, member: discord.Member):
-
-    role = discord.utils.get(ctx.guild.roles, name="Muted")
-
-    if not role:
-        role = await ctx.guild.create_role(name="Muted")
-        for channel in ctx.guild.channels:
-            await channel.set_permissions(role, speak=False, send_messages=False)
-
-    await member.add_roles(role)
-    await ctx.send(f"{member} susturuldu.")
-
-
-@bot.command()
-@commands.has_permissions(manage_roles=True)
-async def unmute(ctx, member: discord.Member):
-
-    role = discord.utils.get(ctx.guild.roles, name="Muted")
-    if role:
-        await member.remove_roles(role)
-
-    await ctx.send(f"{member} susturması kaldırıldı.")
-
-
-# ---------------- UTILITY ----------------
-
+# 📊 PING
 @bot.command()
 async def ping(ctx):
     await ctx.send(f"Pong! {round(bot.latency * 1000)} ms")
 
 
-@bot.command()
-@commands.has_permissions(manage_messages=True)
-async def clear(ctx, amount: int):
-
-    await ctx.channel.purge(limit=amount + 1)
-    await ctx.send("Mesajlar silindi.")
-
-
-@bot.command()
-async def userinfo(ctx, member: discord.Member = None):
-
-    member = member or ctx.author
-
-    embed = discord.Embed(title="Kullanıcı Bilgisi")
-    embed.add_field(name="İsim", value=member.name)
-    embed.add_field(name="ID", value=member.id)
-    embed.set_thumbnail(url=member.display_avatar.url)
-
-    await ctx.send(embed=embed)
-
-
-# ---------------- ERROR ----------------
-
+# ❌ HATA
 @bot.event
 async def on_command_error(ctx, error):
-
     if isinstance(error, commands.CommandNotFound):
-        await ctx.send("Komut yok. !yardım yaz.")
+        await ctx.send("Komut yok.")
     else:
         await ctx.send(f"Hata: {error}")
 
 
-# ---------------- START ----------------
-
-
+# START
 bot.run(os.getenv("TOKEN"))
